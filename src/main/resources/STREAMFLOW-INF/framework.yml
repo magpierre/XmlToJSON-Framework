@@ -1,0 +1,150 @@
+name: XMLToJSON-framework
+label: XMLToJSON Framework
+version: ${project.version}
+description: Spouts and Bolts supporting XML to JSON functionality
+
+components:
+        
+  - name: Path-Browser-spout
+    label: Path Browser Spout
+    type: storm-spout
+    description: Finds new files in a directory
+    mainClass: streamflow.spout.XmlToJson.PathBrowserSpout
+    properties:
+      - name: inputPath
+        label: Folder to track
+        type: text
+        description: Posix folder to track
+        defaultValue: "/mapr/demo.mapr.com/data/landing"
+        required: true
+      - name: filePattern
+        label: File pattern of files to track
+        type: text
+        description: File Pattern of files to track
+        defaultValue: ".*xml"
+        required: true
+    outputs:
+      - key: default
+        description: Names of files.
+       
+  - name: XMLTOJSON-bolt
+    label: XML TO JSON bolt
+    type: storm-bolt
+    description: Parses and generates JSON documents
+    mainClass: streamflow.bolt.XmlToJson.ParseXMLTOJSONBolt
+    properties:
+      - name: removeNameSpace
+        label: Remove Namespace From Tags
+        type: boolean
+        description: Controls if namespace should be part of tags
+        defaultValue: false
+        required: true
+    inputs: 
+      - key: default
+        description: any
+    outputs: 
+      - key: default
+        description: any
+       
+  - name: PosixFileWriter-bolt
+    label: Posix File writer bolt
+    type: storm-bolt
+    description: Write Files to regular file system
+    mainClass: streamflow.bolt.XmlToJson.FileWriterBolt
+    properties:
+     - name: outputFolder
+       label: Folder to store generated files
+       type: text
+       description: Folder of where to store generated files
+       defaultValue:  "/mapr/demo.mapr.com/data/ingested"
+       required: true
+     - name: outputExt
+       label: Extension of generated files
+       type: text
+       description: Extension of generated files
+       defaultValue: ".json"
+       required: true
+    inputs:
+      - key: default
+        description: any
+     
+  - name: HDFSWriter-bolt
+    label: HDFS File writer bolt
+    type: storm-bolt
+    description: Writes stream to HDFS
+    mainClass: streamflow.bolt.XmlToJson.HDFSWriter
+    properties:
+     - name: HdfsUrl
+       label: Hdfs URL:(maprfs:///)
+       type: text
+       description: Url to the filesystem
+       defaultValue: "maprfs:///"
+       required: true
+     - name: SyncPolicyCnt
+       label: Sync Policy Count
+       type: int
+       description: Number of tuples before syncing with HDFS
+       defaultValue:  1000
+       required: true
+     - name: FileRotationPolicy
+       label: File Rotation Policy
+       type: float
+       description: Number of mb to write to each file
+       defaultValue: 5.0
+       required: true
+     - name: Path
+       label: Path
+       type: text
+       description: Path to where the files will be written
+       defaultValue: "/data/storm"
+       required: true
+     - name: FieldSeparator
+       label: FieldSeparator
+       type: text
+       description: Field Separator
+       defaultValue: "|"
+       required: true
+    inputs:
+      - key: default
+        description: any
+    
+  - name: XMLTOJSON-Function
+    label: XML TO JSON Function
+    type: trident-function
+    description: Parses and generates JSON documents
+    mainClass: streamflow.trident.ParseXMLTOJSONFunction
+    properties:
+      - name: removeNameSpace
+        label: Remove Namespace From Tags
+        type: boolean
+        description: Controls if namespace should be part of tags
+        defaultValue: false
+        required: true
+    inputs: 
+      - key: default
+        description: stream
+    outputs: 
+      - key: default
+        description: stream
+    
+  - name: PosixFileWriter-Function
+    label: Posix File writer Function
+    type: trident-function
+    description: Write Files to regular file system
+    mainClass: streamflow.trident.FileWriterFunction
+    properties:
+     - name: outputFolder
+       label: Folder to store generated files
+       type: text
+       description: Folder of where to store generated files
+       defaultValue:  "/mapr/demo.mapr.com/data/ingested"
+       required: true
+     - name: outputExt
+       label: Extension of generated files
+       type: text
+       description: Extension of generated files
+       defaultValue: ".json"
+       required: true
+    inputs:
+      - key: default
+        description: stream
